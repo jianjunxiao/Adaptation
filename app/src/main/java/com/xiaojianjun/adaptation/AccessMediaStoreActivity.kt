@@ -1,0 +1,376 @@
+package com.xiaojianjun.adaptation
+
+import android.app.RecoverableSecurityException
+import android.graphics.BitmapFactory
+import android.graphics.Paint
+import android.os.Build
+import android.os.Bundle
+import android.os.Environment
+import android.provider.MediaStore
+import android.util.Log
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import com.xiaojianjun.adaptation.util.*
+import kotlinx.android.synthetic.main.activity_access_media_store.*
+import kotlinx.coroutines.launch
+import java.io.FileInputStream
+
+class AccessMediaStoreActivity : AppCompatActivity() {
+
+    companion object {
+        private const val TAG = "分区存储(MediaStore)"
+        private const val IMAGE_URL =
+            "http://tanzi27niu.cdsb.mobi/wps/wp-content/uploads/2017/04/2017-04-26_10-00-28.jpg"
+        private const val IMAGE_NAME = "搞笑图片.jpg"
+        private const val DOCUMENT_CONTENT = "这是搞笑段子的内容"
+        private const val DOCUMENT_NAME = "搞笑段子.txt"
+        private const val TXT = "text/plain"
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_access_media_store)
+        init()
+    }
+
+    private fun init() {
+        // 下载图片到系统相册
+        btnDownloadImageToAlbum.setOnClickListener { downloadImageIntoAlbum(IMAGE_URL, IMAGE_NAME) }
+        // 访问本应用下载到系统相册的图片
+        btnAccessOwnAlbumImage.setOnClickListener { accessOwnDownloadAlbumImage(IMAGE_NAME) }
+        // 访问其他应用下载到系统相册的图片
+        btnAccessOtherAppAlbumImage.setOnClickListener { accessOtherAppAlbumImage(IMAGE_NAME) }
+        // 根据访问图片捕获的SecurityException来判断是否需要权限
+        btnSecurityException.setOnClickListener {
+            accessImageSecurityException(IMAGE_NAME)
+        }
+
+        // 保存文档到媒体下载目录
+        btnSaveDocumentToMediaDownload.setOnClickListener {
+            saveDocumentToMediaDownload(DOCUMENT_CONTENT, DOCUMENT_NAME, TXT)
+        }
+        // 访问本应用保存到媒体下载目录中的文档
+        btnAccessOwnMediaDownloadDocument.setOnClickListener {
+            accessOwnMediaDownloadDocument(DOCUMENT_NAME, TXT)
+        }
+        // TODO 访问其他应用保存到媒体下载目录中的文档，不能使用这次方式，要用SAF才能访问
+        btnAccessOtherAppMediaDownloadDocument.let {
+            it.paintFlags = (it.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG)
+            it.setOnClickListener {
+                accessOtherAppMediaDownloadDocument(DOCUMENT_NAME, TXT)
+            }
+        }
+        // 媒体文件执行批量操作，Android11新增
+        btnMediaStoreBatchOperation.setOnClickListener {
+            doBatchOperationMediaStore()
+        }
+        // 通过File API使用直接文件路径访问
+        btnAccessByFileApi.setOnClickListener {
+            accessMediaByFileApi()
+        }
+    }
+
+    /**
+     * 下载图片到相册
+     * Android 10、11系统版本的设备，不需要存储权限，可直接操作。
+     * Android 9及以下系统版本的设备，需要申请存储权限才能操作。
+     * 谷歌官方给的适配建议是不要使用MediaStore API 不要在Android 10以上系统版本的设备申请存储权限，只在Android 9及以下申请。
+     * 注意：MediaStore API 需不需要存储权限与targetApi无关，只与设备系统版本(高于Android10不需要权限)有关
+     * @param url 图片链接
+     * @param imageName 图片名称
+     */
+    private fun downloadImageIntoAlbum(url: String, imageName: String) {
+        lifecycleScope.launch {
+            // 下载得到imageFile
+            val imageFile = downloadImage(this@AccessMediaStoreActivity, url)
+            if (imageFile == null) {
+                showToastAndLog("图片下载失败")
+                return@launch
+            }
+            // 根据设备系统版本判断是否需要存储权限
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // Android 10 及以上设备
+                val result = saveImageToAlbum(this@AccessMediaStoreActivity, imageFile, imageName)
+                if (result) {
+                    showToastAndLog("Android10及以上设备:图片保存到相册成功")
+                } else {
+                    showToastAndLog("Android10及以上设备:图片保存到相册失败")
+                }
+            } else {
+                // Android 9 及以下设备
+                if (suspendRequestStoragePermission()) {
+                    val result =
+                        saveImageToAlbum(this@AccessMediaStoreActivity, imageFile, imageName)
+                    if (result) {
+                        showToastAndLog("Android9及以下设备:图片保存到相册成功")
+                    } else {
+                        showToastAndLog("Android9及以下设备:图片保存到相册失败")
+                    }
+                } else {
+                    showToastAndLog("Android9及以下设备:存储权限拒绝")
+                }
+            }
+        }
+    }
+
+    /**
+     * 访问本应用下载到相册的图片
+     * 在Android 10 及以上不需要存储权限，Android 9及以下需要存储权限。
+     * 在Android 10 及以上的版本，如果应用卸载了，再重新安装，那么之前下载的图片也不能读取了(不会抛出异常，只是查询不到)；
+     * 在Android 10 及以上的设备系统版本，卸载重装，但是如果申请了存储权限的话，还是能读取到之前下载的图片。
+     */
+    private fun accessOwnDownloadAlbumImage(imageName: String) {
+        lifecycleScope.launch {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // Android10及以上系统
+                val bitmap = getImageFileFromAlbum(this@AccessMediaStoreActivity, imageName)
+                if (bitmap == null) {
+                    showToastAndLog("Android10及以上系统读取本应用下载到相册的图片失败")
+                } else {
+                    showToastAndLog("Android10及以上系统读取本应用下载到相册的图片成功")
+                    ImageFragment().show(supportFragmentManager, bitmap)
+                }
+            } else {
+                // Android9及以下系统
+                // 申请存储权限
+                if (suspendRequestStoragePermission()) {
+                    val bitmap = getImageFileFromAlbum(this@AccessMediaStoreActivity, imageName)
+                    if (bitmap == null) {
+                        showToastAndLog("Android9及以下系统读取本应用下载到相册的图片失败")
+                    } else {
+                        showToastAndLog("Android9及以下系统读取本应用下载到相册的图片成功")
+                        ImageFragment().show(supportFragmentManager, bitmap)
+                    }
+                } else {
+                    // 存储权限拒绝
+                    showToastAndLog("Android9及以下存储权限拒绝")
+                }
+            }
+        }
+    }
+
+    /**
+     * 访问其他App存储到系统相册的图片
+     * （修改包名，直接读取之前包名应用下载的图片）
+     */
+    private fun accessOtherAppAlbumImage(fileName: String) {
+        lifecycleScope.launch {
+            // 申请存储权限
+            if (suspendRequestStoragePermission()) {
+                val bitmap = getImageFileFromAlbum(this@AccessMediaStoreActivity, fileName)
+                if (bitmap == null) {
+                    showToastAndLog("读取其他应用下载到相册的图片失败")
+                } else {
+                    showToastAndLog("读取其他应用下载到相册的图片成功")
+                    ImageFragment().show(supportFragmentManager, bitmap)
+                }
+            } else {
+                // 存储权限拒绝
+                showToastAndLog("存储权限拒绝")
+            }
+        }
+    }
+
+    private fun accessImageSecurityException(fileName: String) {
+        lifecycleScope.launch {
+            try {
+                val bitmap = getImageFileFromAlbum(this@AccessMediaStoreActivity, fileName)
+                if (bitmap == null) {
+                    showToastAndLog("读取相册的图片失败")
+                } else {
+                    showToastAndLog("读取图片成功")
+                    ImageFragment().show(supportFragmentManager, bitmap)
+                }
+            } catch (securityException: SecurityException) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    val recoverableSecurityException = securityException
+                            as? RecoverableSecurityException
+                        ?: throw RuntimeException(securityException.message, securityException)
+                    val intentSender = recoverableSecurityException.userAction.actionIntent.intentSender
+                    if (suspendLaunchSenderIntentForResult(intentSender)) {
+                        val bitmap = getImageFileFromAlbum(this@AccessMediaStoreActivity, fileName)
+                        if (bitmap == null) {
+                            showToastAndLog("读取相册的图片失败")
+                        } else {
+                            showToastAndLog("读取图片成功")
+                            ImageFragment().show(supportFragmentManager, bitmap)
+                        }
+                    } else {
+                        showToastAndLog("被拒绝")
+                    }
+                } else {
+                    if (suspendRequestStoragePermission()) {
+                        val bitmap = getImageFileFromAlbum(this@AccessMediaStoreActivity, fileName)
+                        if (bitmap == null) {
+                            showToastAndLog("读取相册的图片失败")
+                        } else {
+                            showToastAndLog("读取图片成功")
+                            ImageFragment().show(supportFragmentManager, bitmap)
+                        }
+                    } else {
+                        showToastAndLog("存储权限被拒绝")
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 保存文档到媒体下载目录
+     * 只有Android10及以上设备可用，且需要存储权限
+     * Android9及以下设备不可用。
+     */
+    private fun saveDocumentToMediaDownload(
+        content: String,
+        documentName: String,
+        mineType: String
+    ) {
+        lifecycleScope.launch {
+            // Android 10及以上设备
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val result = doSaveDocumentToMediaDownload(
+                    this@AccessMediaStoreActivity,
+                    content,
+                    documentName,
+                    mineType
+                )
+                if (result) {
+                    showToastAndLog("保存文档到媒体下载目录成功")
+                } else {
+                    showToastAndLog("保存文档到媒体下载目录失败")
+                }
+            } else {
+                showToastAndLog("Android 9及以下不支持")
+            }
+        }
+    }
+
+    /**
+     * 访问本应用保存到媒体下载目录中的文档，只有Android10及以上设备可用，Android9及以下设备不可用。
+     * Android 10 及以上的设备不需要存储权限。
+     * Android 10 及以上的版本，如果应用卸载了，再重新安装，那么之前保存到媒体下载目录的文件不能读取了(不会抛出异常，只是查询不到)；
+     * Android 10 及以上的设备系统版本，卸载重装，即使申请了存储权限，也不能读取到之前下载的图片，只有通过SAF才能读取到。
+     */
+    private fun accessOwnMediaDownloadDocument(documentName: String, mineType: String) {
+        lifecycleScope.launch {
+            // Android 10及以上设备
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val result = getDocumentContentFromMediaDownload(
+                    context = this@AccessMediaStoreActivity,
+                    documentName = documentName,
+                    mineType = mineType
+                )
+                if (result.isNullOrEmpty()) {
+                    showToastAndLog("访问本应用媒体下载目录中的文档内容失败")
+                } else {
+                    showToastAndLog("访问本应用媒体下载目录中的文档内容成功:\n$result")
+                }
+            } else {
+                showToastAndLog("Android 9及以下不支持")
+            }
+        }
+    }
+
+    /**
+     * TODO 不能使用！不能使用！不能使用！此处只是为了测试！
+     * 不能使用MediaStore API访问其他应用保存到媒体下载目录中的文档
+     * 必须使用存储访问框架才能访问其他应用保存到媒体下载目录的文档
+     */
+    @Deprecated("不能使用这种方式访问，不敢哪个版本，是否有存储权限，结果肯定是失败！！！")
+    private fun accessOtherAppMediaDownloadDocument(documentName: String, mineType: String) {
+        lifecycleScope.launch {
+            // Android 10及以上设备
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // 申请存储权限
+                if (suspendRequestStoragePermission()) {
+                    val result = getDocumentContentFromMediaDownload(
+                        context = this@AccessMediaStoreActivity,
+                        documentName = documentName,
+                        mineType = mineType
+                    )
+                    if (result.isNullOrEmpty()) {
+                        showToastAndLog("访问其他应用媒体下载目录中的文档内容失败")
+                    } else {
+                        showToastAndLog("访问媒其他应用媒体下载目录中的文档内容成功:\n$result")
+                    }
+                } else {
+                    showToastAndLog("存储权限拒绝")
+                }
+            } else {
+                showToastAndLog("Android 9及以下不支持")
+            }
+        }
+    }
+
+    /**
+     * MediaStore执行批量操作
+     * 只在Android11及以上可用
+     * 猜想批量操作需要弹出询问框，可能是因为操作的批量Uri可能含有其他应用创建的文件
+     */
+    private fun doBatchOperationMediaStore() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val urisToModify = queryAllImageUris(this)
+            val editPendingIntent = MediaStore.createWriteRequest(contentResolver, urisToModify)
+            launchSenderIntentForResult(editPendingIntent.intentSender) {
+                if (it) {
+                    /* Edit request granted; proceed. */
+                } else {
+                    /* Edit request not granted; explain to the user. */
+                }
+            }
+        } else {
+            showToastAndLog("Android 10及以下设备不支持")
+        }
+    }
+
+    /**
+     * 使用直接路径通过File APi来访问媒体文件
+     * 在Android 11 及以上，无需存储权限，直接访问
+     * Android 10，不支持，除非禁用分区存储
+     * Android 9 及以下，有存储权限才可访问
+     */
+    private fun accessMediaByFileApi() {
+        when {
+            // Android 11 及以上
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
+                val path =
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).path + "/" + IMAGE_NAME
+                FileInputStream(path).use {
+                    val bmp = BitmapFactory.decodeStream(it)
+                    ImageFragment().show(supportFragmentManager, bmp)
+                    showToastAndLog("在Android11通过FileAPI使用直接路径访问成功")
+                }
+            }
+            // Android 10
+            Build.VERSION.SDK_INT == Build.VERSION_CODES.Q -> {
+                showToastAndLog("Android 10 不支持")
+            }
+            // Android 9及以下
+            else -> {
+                requestStoragePermission(
+                    onGranted = {
+                        val path =
+                            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).path + "/" + IMAGE_NAME
+                        FileInputStream(path).use {
+                            val bmp = BitmapFactory.decodeStream(it)
+                            ImageFragment().show(supportFragmentManager, bmp)
+                            showToastAndLog("在Android9及以下通过FileAPI使用直接路径访问成功")
+                        }
+                    },
+                    onDenied = {
+                        showToastAndLog("存储权限拒绝")
+                    }
+                )
+            }
+        }
+    }
+
+    /**
+     * 弹出吐司并打印Log
+     */
+    private fun showToastAndLog(msg: String) {
+        Log.d(TAG, msg)
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+    }
+}
