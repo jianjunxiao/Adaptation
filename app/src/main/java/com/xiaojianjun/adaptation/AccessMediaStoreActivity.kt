@@ -1,6 +1,7 @@
 package com.xiaojianjun.adaptation
 
 import android.app.RecoverableSecurityException
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Paint
 import android.os.Build
@@ -13,18 +14,25 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.xiaojianjun.adaptation.util.*
 import kotlinx.android.synthetic.main.activity_access_media_store.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.FileInputStream
 
 class AccessMediaStoreActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "分区存储(MediaStore)"
-        private const val IMAGE_URL =
+        private const val IMAGE_URL_A =
             "http://tanzi27niu.cdsb.mobi/wps/wp-content/uploads/2017/04/2017-04-26_10-00-28.jpg"
-        private const val IMAGE_NAME = "搞笑图片.jpg"
-        private const val DOCUMENT_CONTENT = "这是搞笑段子的内容"
-        private const val DOCUMENT_NAME = "搞笑段子.txt"
+        private const val IMAGE_URL_B =
+            "http://tanzi27niu.cdsb.mobi/wps/wp-content/uploads/2017/05/2017-05-17_17-30-43.jpg"
+        private const val IMAGE_NAME_A = "搞笑图片(a).jpg"
+        private const val IMAGE_NAME_B = "搞笑图片(b).jpg"
+        private const val DOCUMENT_CONTENT_A = "这是搞笑段子(a)的内容"
+        private const val DOCUMENT_CONTENT_B = "这是搞笑段子(b)的内容"
+        private const val DOCUMENT_NAME_A = "搞笑段子(a).txt"
+        private const val DOCUMENT_NAME_B = "搞笑段子(b).txt"
         private const val TXT = "text/plain"
     }
 
@@ -34,40 +42,74 @@ class AccessMediaStoreActivity : AppCompatActivity() {
         init()
     }
 
+    private fun isPackageA(): Boolean {
+        return this.packageName == "com.ztzh.adaptation.a"
+    }
+
     private fun init() {
         // 下载图片到系统相册
-        btnDownloadImageToAlbum.setOnClickListener { downloadImageIntoAlbum(IMAGE_URL, IMAGE_NAME) }
+        btnDownloadImageToAlbum.setOnClickListener {
+            if (isPackageA()) {
+                downloadImageIntoAlbum(IMAGE_URL_A, IMAGE_NAME_A)
+            } else {
+                downloadImageIntoAlbum(IMAGE_URL_B, IMAGE_NAME_B)
+            }
+        }
         // 访问本应用下载到系统相册的图片
-        btnAccessOwnAlbumImage.setOnClickListener { accessOwnDownloadAlbumImage(IMAGE_NAME) }
+        btnAccessOwnAlbumImage.setOnClickListener {
+            accessOwnDownloadAlbumImage(if (isPackageA()) IMAGE_NAME_A else IMAGE_NAME_B)
+        }
         // 访问其他应用下载到系统相册的图片
-        btnAccessOtherAppAlbumImage.setOnClickListener { accessOtherAppAlbumImage(IMAGE_NAME) }
-        // 删除系统相册中的图片
-        btnDeleteAlbumImage.setOnClickListener {
-            deleteImageSecurityException(IMAGE_NAME)
+        btnAccessOtherAppAlbumImage.setOnClickListener {
+            accessOtherAppAlbumImage(if (isPackageA()) IMAGE_NAME_B else IMAGE_NAME_A)
+        }
+        // 删除本应用下载到系统相册中的图片
+        btnDeleteOwnAlbumImage.setOnClickListener {
+            deleteOwnImageFromAlbum(if (isPackageA()) IMAGE_NAME_A else IMAGE_NAME_B)
+        }
+        // 删除其他应用下载到系统相册中的图片
+        btnDeleteOtherAlbumImage.setOnClickListener {
+            deleteOtherImageFromAlbum(if (isPackageA()) IMAGE_NAME_B else IMAGE_NAME_A)
         }
 
         // 保存文档到媒体下载目录
         btnSaveDocumentToMediaDownload.setOnClickListener {
-            saveDocumentToMediaDownload(DOCUMENT_CONTENT, DOCUMENT_NAME, TXT)
+            if (isPackageA()) {
+                saveDocumentToMediaDownload(DOCUMENT_CONTENT_A, DOCUMENT_NAME_A, TXT)
+            } else {
+                saveDocumentToMediaDownload(DOCUMENT_CONTENT_B, DOCUMENT_NAME_B, TXT)
+            }
         }
         // 访问本应用保存到媒体下载目录中的文档
         btnAccessOwnMediaDownloadDocument.setOnClickListener {
-            accessOwnMediaDownloadDocument(DOCUMENT_NAME, TXT)
+            accessOwnMediaDownloadDocument(
+                if (isPackageA()) DOCUMENT_NAME_A else DOCUMENT_NAME_B, TXT
+            )
+        }
+        // 删除本应用保存到媒体下载目录中的文档
+        btnDeleteOwnMediaDownloadDocument.setOnClickListener {
+            deleteOwnDownloadDocument(if (isPackageA()) DOCUMENT_NAME_A else DOCUMENT_NAME_B, TXT)
         }
         // TODO 访问其他应用保存到媒体下载目录中的文档，不能使用这次方式，要用SAF才能访问
         btnAccessOtherAppMediaDownloadDocument.let {
             it.paintFlags = (it.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG)
             it.setOnClickListener {
-                accessOtherAppMediaDownloadDocument(DOCUMENT_NAME, TXT)
+                accessOtherAppMediaDownloadDocument(
+                    if (isPackageA()) DOCUMENT_NAME_B else DOCUMENT_NAME_A, TXT
+                )
             }
         }
         // 媒体文件执行批量操作，Android11新增
         btnMediaStoreBatchOperation.setOnClickListener {
             doBatchOperationMediaStore()
         }
-        // 通过File API使用直接文件路径访问
-        btnAccessByFileApi.setOnClickListener {
-            accessMediaByFileApi()
+        // 通过FileAPI和路径访问本应用保存的相册图片
+        btnAccessOwnAlbumImageByFileApi.setOnClickListener {
+            accessMediaByFileApi(true)
+        }
+        // 通过FileAPI和路径访问其他应用保存的相册图片
+        btnAccessOtherAlbumImageByFileApi.setOnClickListener {
+            accessMediaByFileApi(false)
         }
     }
 
@@ -174,48 +216,56 @@ class AccessMediaStoreActivity : AppCompatActivity() {
 
     /**
      * 删除系统相册中的图片
-     * 本应用保存到相册中的图片，可直接删除
-     * 其他应用保存到相册的图片，删除时，就算有存储权限会抛出SecurityException，没有存储权限查找不到其他应用的图片
+     * 本应用保存到相册中的图片，可直接删除，无需存储权限
+     */
+    private fun deleteOwnImageFromAlbum(fileName: String) {
+        lifecycleScope.launch {
+            val result = deleteOwnImageFromAlbum(this@AccessMediaStoreActivity, fileName)
+            if (!result) {
+                showToastAndLog("删除图片失败：可能没有该图片")
+            } else {
+                showToastAndLog("删除图片成功")
+            }
+        }
+    }
+
+    /**
+     * 删除系统相册中的图片
+     * 其他应用保存到相册的图片，删除时，有存储权限会抛出SecurityException，没有存储权限查找不到其他应用的图片
      * 抛出安全异常，捕获后判断版本和权限
      */
-    private fun deleteImageSecurityException(fileName: String) {
+    private fun deleteOtherImageFromAlbum(fileName: String) {
         lifecycleScope.launch {
-            try {
-                val result = deleteImageFromAlbum(this@AccessMediaStoreActivity, fileName)
-                if (!result) {
-                    showToastAndLog("删除图片失败：没有查询到系统相册中的图片，可能相册中无图片，也可能没有给予存储权限")
-                } else {
-                    showToastAndLog("删除图片成功")
-                }
-            } catch (securityException: SecurityException) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    val recoverableSecurityException = securityException
-                            as? RecoverableSecurityException
-                        ?: return@launch showToastAndLog(securityException.message.toString())
-                    val intentSender =
-                        recoverableSecurityException.userAction.actionIntent.intentSender
-                    if (suspendLaunchSenderIntentForResult(intentSender)) {
-                        val result = deleteImageFromAlbum(this@AccessMediaStoreActivity, fileName)
-                        if (!result) {
-                            showToastAndLog("删除相册的图片失败")
-                        } else {
-                            showToastAndLog("删除图片成功")
-                        }
+            if (suspendRequestStoragePermission()) {
+                try {
+                    val result = deleteOwnImageFromAlbum(this@AccessMediaStoreActivity, fileName)
+                    if (!result) {
+                        showToastAndLog("删除其他应用的相册图片失败：可能该图片不存在着")
                     } else {
-                        showToastAndLog("被拒绝")
+                        showToastAndLog("删除其他应用的相册图片成功")
                     }
-                } else {
-                    if (suspendRequestStoragePermission()) {
-                        val result = deleteImageFromAlbum(this@AccessMediaStoreActivity, fileName)
-                        if (!result) {
-                            showToastAndLog("删除相册的图片失败")
+                } catch (se: SecurityException) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        val recoverableSecurityException = se as? RecoverableSecurityException
+                            ?: return@launch showToastAndLog(se.message.toString())
+                        val intentSender =
+                            recoverableSecurityException.userAction.actionIntent.intentSender
+                        if (suspendLaunchSenderIntentForResult(intentSender)) {
+                            val result =
+                                deleteOwnImageFromAlbum(this@AccessMediaStoreActivity, fileName)
+                            if (!result) {
+                                showToastAndLog("删除其他应用的相册图片失败")
+                            } else {
+                                showToastAndLog("删除其他应用的相册图片成功")
+                            }
                         } else {
-                            showToastAndLog("删除图片成功")
+                            showToastAndLog("二次确认被拒绝")
                         }
-                    } else {
-                        showToastAndLog("存储权限被拒绝")
                     }
                 }
+            } else {
+                // 没有存储权限，无法访问其他应用保存的相册图片，也就无法删除
+                showToastAndLog("没有存储权限，无法访问，无法删除")
             }
         }
     }
@@ -277,6 +327,32 @@ class AccessMediaStoreActivity : AppCompatActivity() {
     }
 
     /**
+     * 删除本应用保存到媒体下载目录中的文档，只有Android10及以上设备可用，Android9及以下设备不可用。
+     * Android 10 及以上的设备不需要存储权限。
+     * Android 10 及以上的版本，如果应用卸载了，再重新安装，那么之前保存到媒体下载目录的文件不能删除了(不会抛出异常，只是查询不到)；
+     * Android 10 及以上的设备系统版本，卸载重装，即使申请了存储权限，也不能删除之前下载的图片，只有通过SAF才能操作。
+     */
+    private fun deleteOwnDownloadDocument(documentName: String, mineType: String) {
+        lifecycleScope.launch {
+            // Android 10及以上设备
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val result = deleteDocumentFromMediaDownload(
+                    context = this@AccessMediaStoreActivity,
+                    documentName = documentName,
+                    mineType = mineType
+                )
+                if (result) {
+                    showToastAndLog("删除本应用媒体下载目录中的文档内容成功")
+                } else {
+                    showToastAndLog("删除本应用媒体下载目录中的文档内容失败")
+                }
+            } else {
+                showToastAndLog("Android 9及以下不支持")
+            }
+        }
+    }
+
+    /**
      * TODO 不能使用！不能使用！不能使用！此处只是为了测试！
      * 不能使用MediaStore API访问其他应用保存到媒体下载目录中的文档
      * 必须使用存储访问框架才能访问其他应用保存到媒体下载目录的文档
@@ -308,7 +384,7 @@ class AccessMediaStoreActivity : AppCompatActivity() {
     }
 
     /**
-     * MediaStore执行批量操作
+     * MediaStore执行批量操作确认
      * 只在Android11及以上可用
      * 猜想批量操作需要弹出询问框，可能是因为操作的批量Uri可能含有其他应用创建的文件
      */
@@ -333,42 +409,50 @@ class AccessMediaStoreActivity : AppCompatActivity() {
 
     /**
      * 使用直接路径通过File APi来访问媒体文件
-     * 在Android 11 及以上，无需存储权限，直接访问
+     * 在Android 11 及以上，本应用穿件的无需存储权限，直接访问，其他应用创建的需要权限
      * Android 10，不支持，除非禁用分区存储
      * Android 9 及以下，有存储权限才可访问
      */
-    private fun accessMediaByFileApi() {
-        when {
-            // Android 11 及以上
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
-                val path =
-                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).path + "/" + IMAGE_NAME
-                FileInputStream(path).use {
-                    val bmp = BitmapFactory.decodeStream(it)
-                    ImageFragment().show(supportFragmentManager, bmp)
-                    showToastAndLog("在Android11通过FileAPI使用直接路径访问成功")
+    private fun accessMediaByFileApi(isOwner: Boolean) {
+        val fileName = if (isOwner) {
+            if (isPackageA()) IMAGE_NAME_A else IMAGE_NAME_B
+        } else {
+            if (isPackageA()) IMAGE_NAME_B else IMAGE_NAME_A
+        }
+        lifecycleScope.launch {
+            when {
+                // Android 11 及以上
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
+                    if (isOwner || (!isOwner && suspendRequestStoragePermission())) {
+                        val bmp = doGetImageByFileApi(fileName)
+                        ImageFragment().show(supportFragmentManager, bmp)
+                        showToastAndLog("在Android11通过FileAPI使用直接路径访问成功")
+                    }
                 }
-            }
-            // Android 10
-            Build.VERSION.SDK_INT == Build.VERSION_CODES.Q -> {
-                showToastAndLog("Android 10 不支持")
-            }
-            // Android 9及以下
-            else -> {
-                requestStoragePermission(
-                    onGranted = {
-                        val path =
-                            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).path + "/" + IMAGE_NAME
-                        FileInputStream(path).use {
-                            val bmp = BitmapFactory.decodeStream(it)
-                            ImageFragment().show(supportFragmentManager, bmp)
-                            showToastAndLog("在Android9及以下通过FileAPI使用直接路径访问成功")
-                        }
-                    },
-                    onDenied = {
+                // Android 10
+                Build.VERSION.SDK_INT == Build.VERSION_CODES.Q -> {
+                    showToastAndLog("Android 10 不支持FileAPI访问")
+                }
+                // Android 9及以下
+                else -> {
+                    if (suspendRequestStoragePermission()) {
+                        val bmp = doGetImageByFileApi(fileName)
+                        ImageFragment().show(supportFragmentManager, bmp)
+                        showToastAndLog("在Android9及以下通过FileAPI使用直接路径访问成功")
+                    } else {
                         showToastAndLog("存储权限拒绝")
                     }
-                )
+                }
+            }
+        }
+    }
+
+    private suspend fun doGetImageByFileApi(fileName: String): Bitmap {
+        return withContext(Dispatchers.IO) {
+            val path =
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).path + "/" + fileName
+            FileInputStream(path).use {
+                return@withContext BitmapFactory.decodeStream(it)
             }
         }
     }

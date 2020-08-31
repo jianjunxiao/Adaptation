@@ -79,3 +79,29 @@ suspend fun getDocumentContentFromMediaDownload(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.Q)
+suspend fun deleteDocumentFromMediaDownload(
+    context: Context,
+    documentName: String,
+    mineType: String
+): Boolean {
+    return withContext(Dispatchers.IO) {
+        val uri = MediaStore.Downloads.EXTERNAL_CONTENT_URI
+        val projection = arrayOf(MediaStore.Downloads._ID)
+        val selection =
+            "${MediaStore.Downloads.DISPLAY_NAME}=? and ${MediaStore.Downloads.MIME_TYPE}=?"
+        val selectionArgs = arrayOf(documentName, mineType)
+        val sortOrder = "${MediaStore.Downloads.DISPLAY_NAME} ASC"
+        context.contentResolver.query(uri, projection, selection, selectionArgs, sortOrder)?.use {
+            val idColumn = it.getColumnIndexOrThrow(MediaStore.Downloads._ID)
+            while (it.moveToNext()) {
+                val id = it.getLong(idColumn)
+                val contentUri = ContentUris.withAppendedId(uri, id)
+                val row = context.contentResolver.delete(contentUri, null, null)
+                return@withContext row > 0
+            }
+        }
+        return@withContext false
+    }
+}
+

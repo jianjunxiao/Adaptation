@@ -76,7 +76,7 @@ suspend fun getImageFileFromAlbum(context: Context, fileName: String): Bitmap? {
 /**
  * 删除系统相册中的图片
  */
-suspend fun deleteImageFromAlbum(context: Context, fileName: String): Boolean {
+suspend fun deleteOwnImageFromAlbum(context: Context, fileName: String): Boolean {
     return withContext(Dispatchers.IO) {
         val uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
         val projection = arrayOf(MediaStore.Images.Media._ID)
