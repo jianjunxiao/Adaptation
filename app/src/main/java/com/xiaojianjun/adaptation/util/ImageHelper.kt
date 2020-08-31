@@ -32,11 +32,7 @@ suspend fun saveImageToAlbum(context: Context, imageFile: File, imageName: Strin
             .insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
             ?: return@withContext false
         // 根据uri打开输出流，写入imageFile文件
-        try {
-            context.contentResolver.openOutputStream(uri)?.use { it.write(imageFile.readBytes()) }
-        } catch (e: Exception) {
-            return@withContext false
-        }
+        context.contentResolver.openOutputStream(uri)?.use { it.write(imageFile.readBytes()) }
         // 切换文件待处理状态
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             contentValues.clear()
@@ -58,7 +54,7 @@ suspend fun getImageFileFromAlbum(context: Context, fileName: String): Bitmap? {
             MediaStore.Images.Media.DISPLAY_NAME,
             MediaStore.Images.Media.DESCRIPTION
         )
-        val selection = "${MediaStore.Images.Media.DISPLAY_NAME} >= ?"
+        val selection = "${MediaStore.Images.Media.DISPLAY_NAME} = ?"
         val selectionArgs = arrayOf(fileName)
         val sortOrder = "${MediaStore.Images.Media.DISPLAY_NAME} ASC"
         context.contentResolver.query(uri, projection, selection, selectionArgs, sortOrder)?.use {
@@ -77,13 +73,26 @@ suspend fun getImageFileFromAlbum(context: Context, fileName: String): Bitmap? {
     }
 }
 
+/**
+ * 删除系统相册中的图片
+ */
 suspend fun deleteImageFromAlbum(context: Context, fileName: String): Boolean {
     return withContext(Dispatchers.IO) {
         val uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-        val selection = "${MediaStore.Images.Media.DISPLAY_NAME} >= ?"
+        val projection = arrayOf(MediaStore.Images.Media._ID)
+        val selection = "${MediaStore.Images.Media.DISPLAY_NAME} = ?"
         val selectionArgs = arrayOf(fileName)
-        val r = context.contentResolver.delete(uri, selection, selectionArgs)
-        return@withContext r != -1
+        val sortOrder = "${MediaStore.Images.Media.DISPLAY_NAME} ASC"
+        context.contentResolver.query(uri, projection, selection, selectionArgs, sortOrder)?.use {
+            val idColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
+            while (it.moveToNext()) {
+                val id = it.getLong(idColumn)
+                val contentUri = ContentUris.withAppendedId(uri, id)
+                val row = context.contentResolver.delete(contentUri, null, null)
+                return@withContext row > 0
+            }
+        }
+        return@withContext false
     }
 }
 

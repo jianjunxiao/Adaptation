@@ -39,11 +39,11 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
-        android:id="@+id/btnSecurityException"
+        android:id="@+id/btnDeleteAlbumImage"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textAllCaps="false"
-        android:text="根据访问图片捕获的安全异常来判断是否需要权限"
+        android:text="删除系统相册中的图片"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"

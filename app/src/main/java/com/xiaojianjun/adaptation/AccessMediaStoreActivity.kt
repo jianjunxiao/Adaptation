@@ -41,9 +41,9 @@ class AccessMediaStoreActivity : AppCompatActivity() {
         btnAccessOwnAlbumImage.setOnClickListener { accessOwnDownloadAlbumImage(IMAGE_NAME) }
         // 访问其他应用下载到系统相册的图片
         btnAccessOtherAppAlbumImage.setOnClickListener { accessOtherAppAlbumImage(IMAGE_NAME) }
-        // 根据访问图片捕获的SecurityException来判断是否需要权限
-        btnSecurityException.setOnClickListener {
-            accessImageSecurityException(IMAGE_NAME)
+        // 删除系统相册中的图片
+        btnDeleteAlbumImage.setOnClickListener {
+            deleteImageSecurityException(IMAGE_NAME)
         }
 
         // 保存文档到媒体下载目录
@@ -172,41 +172,45 @@ class AccessMediaStoreActivity : AppCompatActivity() {
         }
     }
 
-    private fun accessImageSecurityException(fileName: String) {
+    /**
+     * 删除系统相册中的图片
+     * 本应用保存到相册中的图片，可直接删除
+     * 其他应用保存到相册的图片，删除时，就算有存储权限会抛出SecurityException，没有存储权限查找不到其他应用的图片
+     * 抛出安全异常，捕获后判断版本和权限
+     */
+    private fun deleteImageSecurityException(fileName: String) {
         lifecycleScope.launch {
             try {
-                val bitmap = getImageFileFromAlbum(this@AccessMediaStoreActivity, fileName)
-                if (bitmap == null) {
-                    showToastAndLog("读取相册的图片失败")
+                val result = deleteImageFromAlbum(this@AccessMediaStoreActivity, fileName)
+                if (!result) {
+                    showToastAndLog("删除图片失败：没有查询到系统相册中的图片，可能相册中无图片，也可能没有给予存储权限")
                 } else {
-                    showToastAndLog("读取图片成功")
-                    ImageFragment().show(supportFragmentManager, bitmap)
+                    showToastAndLog("删除图片成功")
                 }
             } catch (securityException: SecurityException) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     val recoverableSecurityException = securityException
                             as? RecoverableSecurityException
-                        ?: throw RuntimeException(securityException.message, securityException)
-                    val intentSender = recoverableSecurityException.userAction.actionIntent.intentSender
+                        ?: return@launch showToastAndLog(securityException.message.toString())
+                    val intentSender =
+                        recoverableSecurityException.userAction.actionIntent.intentSender
                     if (suspendLaunchSenderIntentForResult(intentSender)) {
-                        val bitmap = getImageFileFromAlbum(this@AccessMediaStoreActivity, fileName)
-                        if (bitmap == null) {
-                            showToastAndLog("读取相册的图片失败")
+                        val result = deleteImageFromAlbum(this@AccessMediaStoreActivity, fileName)
+                        if (!result) {
+                            showToastAndLog("删除相册的图片失败")
                         } else {
-                            showToastAndLog("读取图片成功")
-                            ImageFragment().show(supportFragmentManager, bitmap)
+                            showToastAndLog("删除图片成功")
                         }
                     } else {
                         showToastAndLog("被拒绝")
                     }
                 } else {
                     if (suspendRequestStoragePermission()) {
-                        val bitmap = getImageFileFromAlbum(this@AccessMediaStoreActivity, fileName)
-                        if (bitmap == null) {
-                            showToastAndLog("读取相册的图片失败")
+                        val result = deleteImageFromAlbum(this@AccessMediaStoreActivity, fileName)
+                        if (!result) {
+                            showToastAndLog("删除相册的图片失败")
                         } else {
-                            showToastAndLog("读取图片成功")
-                            ImageFragment().show(supportFragmentManager, bitmap)
+                            showToastAndLog("删除图片成功")
                         }
                     } else {
                         showToastAndLog("存储权限被拒绝")
@@ -311,6 +315,9 @@ class AccessMediaStoreActivity : AppCompatActivity() {
     private fun doBatchOperationMediaStore() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val urisToModify = queryAllImageUris(this)
+            if (urisToModify.isEmpty()) {
+                return showToastAndLog("没有可操作的图片")
+            }
             val editPendingIntent = MediaStore.createWriteRequest(contentResolver, urisToModify)
             launchSenderIntentForResult(editPendingIntent.intentSender) {
                 if (it) {
