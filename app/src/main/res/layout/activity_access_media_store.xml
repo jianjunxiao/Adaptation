@@ -19,7 +19,7 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
-        android:id="@+id/btnAccessOwnAlbumImage"
+        android:id="@+id/btnReadOwnAlbumImage"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="读取本应用下载到系统相册的图片"
@@ -29,7 +29,7 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
-        android:id="@+id/btnAccessOtherAppAlbumImage"
+        android:id="@+id/btnReadOtherAppAlbumImage"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="读取其他应用下载到系统相册的图片"
@@ -72,10 +72,10 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
-        android:id="@+id/btnAccessOwnMediaDownloadDocument"
+        android:id="@+id/btnReadOwnMediaDownloadDocument"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="访问本应用保存到媒体下载目录中的文档"
+        android:text="读取本应用保存到媒体下载目录中的文档"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
@@ -92,10 +92,10 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
-        android:id="@+id/btnAccessOtherAppMediaDownloadDocument"
+        android:id="@+id/btnReadOtherAppMediaDownloadDocument"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="访问其他应用保存到媒体下载目录中的文档"
+        android:text="读取其他应用保存到媒体下载目录中的文档"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
@@ -113,10 +113,10 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
-        android:id="@+id/btnAccessOwnAlbumImageByFileApi"
+        android:id="@+id/btnReadOwnAlbumImageByFileApi"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="通过FileAPI和路径访问本应用保存的相册图片"
+        android:text="通过FileAPI和路径读取本应用保存的相册图片"
         android:textAllCaps="false"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
@@ -124,10 +124,10 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
-        android:id="@+id/btnAccessOtherAlbumImageByFileApi"
+        android:id="@+id/btnReadOtherAlbumImageByFileApi"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="通过FileAPI和路径访问其他应用保存的相册图片"
+        android:text="通过FileAPI和路径读取其他应用保存的相册图片"
         android:textAllCaps="false"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"

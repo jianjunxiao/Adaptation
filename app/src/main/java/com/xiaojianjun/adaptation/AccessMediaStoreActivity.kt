@@ -55,13 +55,13 @@ class AccessMediaStoreActivity : AppCompatActivity() {
                 downloadImageIntoAlbum(IMAGE_URL_B, IMAGE_NAME_B)
             }
         }
-        // 访问本应用下载到系统相册的图片
-        btnAccessOwnAlbumImage.setOnClickListener {
-            accessOwnDownloadAlbumImage(if (isPackageA()) IMAGE_NAME_A else IMAGE_NAME_B)
+        // 读取本应用下载到系统相册的图片
+        btnReadOwnAlbumImage.setOnClickListener {
+            readOwnDownloadAlbumImage(if (isPackageA()) IMAGE_NAME_A else IMAGE_NAME_B)
         }
-        // 访问其他应用下载到系统相册的图片
-        btnAccessOtherAppAlbumImage.setOnClickListener {
-            accessOtherAppAlbumImage(if (isPackageA()) IMAGE_NAME_B else IMAGE_NAME_A)
+        // 读取其他应用下载到系统相册的图片
+        btnReadOtherAppAlbumImage.setOnClickListener {
+            readOtherAppAlbumImage(if (isPackageA()) IMAGE_NAME_B else IMAGE_NAME_A)
         }
         // 删除本应用下载到系统相册中的图片
         btnDeleteOwnAlbumImage.setOnClickListener {
@@ -80,8 +80,8 @@ class AccessMediaStoreActivity : AppCompatActivity() {
                 saveDocumentToMediaDownload(DOCUMENT_CONTENT_B, DOCUMENT_NAME_B, TXT)
             }
         }
-        // 访问本应用保存到媒体下载目录中的文档
-        btnAccessOwnMediaDownloadDocument.setOnClickListener {
+        // 读取本应用保存到媒体下载目录中的文档
+        btnReadOwnMediaDownloadDocument.setOnClickListener {
             accessOwnMediaDownloadDocument(
                 if (isPackageA()) DOCUMENT_NAME_A else DOCUMENT_NAME_B, TXT
             )
@@ -90,11 +90,11 @@ class AccessMediaStoreActivity : AppCompatActivity() {
         btnDeleteOwnMediaDownloadDocument.setOnClickListener {
             deleteOwnDownloadDocument(if (isPackageA()) DOCUMENT_NAME_A else DOCUMENT_NAME_B, TXT)
         }
-        // TODO 访问其他应用保存到媒体下载目录中的文档，不能使用这次方式，要用SAF才能访问
-        btnAccessOtherAppMediaDownloadDocument.let {
+        // TODO 读取其他应用保存到媒体下载目录中的文档，不能使用这次方式，要用SAF才能访问
+        btnReadOtherAppMediaDownloadDocument.let {
             it.paintFlags = (it.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG)
             it.setOnClickListener {
-                accessOtherAppMediaDownloadDocument(
+                readOtherAppMediaDownloadDocument(
                     if (isPackageA()) DOCUMENT_NAME_B else DOCUMENT_NAME_A, TXT
                 )
             }
@@ -103,13 +103,13 @@ class AccessMediaStoreActivity : AppCompatActivity() {
         btnMediaStoreBatchOperation.setOnClickListener {
             doBatchOperationMediaStore()
         }
-        // 通过FileAPI和路径访问本应用保存的相册图片
-        btnAccessOwnAlbumImageByFileApi.setOnClickListener {
-            accessMediaByFileApi(true)
+        // 通过FileAPI和路径读取本应用保存的相册图片
+        btnReadOwnAlbumImageByFileApi.setOnClickListener {
+            readOwnAlbumImageByFileApi(true)
         }
-        // 通过FileAPI和路径访问其他应用保存的相册图片
-        btnAccessOtherAlbumImageByFileApi.setOnClickListener {
-            accessMediaByFileApi(false)
+        // 通过FileAPI和路径读取其他应用保存的相册图片
+        btnReadOtherAlbumImageByFileApi.setOnClickListener {
+            readOwnAlbumImageByFileApi(false)
         }
     }
 
@@ -162,7 +162,7 @@ class AccessMediaStoreActivity : AppCompatActivity() {
      * 在Android 10 及以上的版本，如果应用卸载了，再重新安装，那么之前下载的图片也不能读取了(不会抛出异常，只是查询不到)；
      * 在Android 10 及以上的设备系统版本，卸载重装，但是如果申请了存储权限的话，还是能读取到之前下载的图片。
      */
-    private fun accessOwnDownloadAlbumImage(imageName: String) {
+    private fun readOwnDownloadAlbumImage(imageName: String) {
         lifecycleScope.launch {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 // Android10及以上系统
@@ -196,7 +196,7 @@ class AccessMediaStoreActivity : AppCompatActivity() {
      * 访问其他App存储到系统相册的图片
      * （修改包名，直接读取之前包名应用下载的图片）
      */
-    private fun accessOtherAppAlbumImage(fileName: String) {
+    private fun readOtherAppAlbumImage(fileName: String) {
         lifecycleScope.launch {
             // 申请存储权限
             if (suspendRequestStoragePermission()) {
@@ -358,7 +358,7 @@ class AccessMediaStoreActivity : AppCompatActivity() {
      * 必须使用存储访问框架才能访问其他应用保存到媒体下载目录的文档
      */
     @Deprecated("不能使用这种方式访问，不敢哪个版本，是否有存储权限，结果肯定是失败！！！")
-    private fun accessOtherAppMediaDownloadDocument(documentName: String, mineType: String) {
+    private fun readOtherAppMediaDownloadDocument(documentName: String, mineType: String) {
         lifecycleScope.launch {
             // Android 10及以上设备
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -413,7 +413,7 @@ class AccessMediaStoreActivity : AppCompatActivity() {
      * Android 10，不支持，除非禁用分区存储
      * Android 9 及以下，有存储权限才可访问
      */
-    private fun accessMediaByFileApi(isOwner: Boolean) {
+    private fun readOwnAlbumImageByFileApi(isOwner: Boolean) {
         val fileName = if (isOwner) {
             if (isPackageA()) IMAGE_NAME_A else IMAGE_NAME_B
         } else {
@@ -447,6 +447,9 @@ class AccessMediaStoreActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * File Api 读取图片
+     */
     private suspend fun doGetImageByFileApi(fileName: String): Bitmap {
         return withContext(Dispatchers.IO) {
             val path =
