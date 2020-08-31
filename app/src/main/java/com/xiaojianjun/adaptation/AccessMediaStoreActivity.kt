@@ -412,6 +412,8 @@ class AccessMediaStoreActivity : AppCompatActivity() {
      * 在Android 11 及以上，本应用穿件的无需存储权限，直接访问，其他应用创建的需要权限
      * Android 10，不支持，除非禁用分区存储
      * Android 9 及以下，有存储权限才可访问
+     *
+     * @param isOwner 是否是自己应用保存的图片
      */
     private fun readOwnAlbumImageByFileApi(isOwner: Boolean) {
         val fileName = if (isOwner) {
