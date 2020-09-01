@@ -402,16 +402,23 @@ class AccessMediaStoreActivity : AppCompatActivity() {
                     /* Edit request not granted; explain to the user. */
                 }
             }
+            // or 收藏、放入垃圾箱、删除
+            // MediaStore.createFavoriteRequest(contentResolver, urisToModify)
+            // MediaStore.createTrashRequest(contentResolver, urisToModify, true)
+            // MediaStore.createDeleteRequest(contentResolver, urisToModify)
         } else {
             showToastAndLog("Android 10及以下设备不支持")
         }
     }
 
     /**
-     * 使用直接路径通过File APi来访问媒体文件
-     * 在Android 11 及以上，本应用穿件的无需存储权限，直接访问，其他应用创建的需要权限
+     * 使用直接路径通过File APi来访问系统相册中的照片
+     * 在Android 11 及以上，本应用创建的的无需存储权限，直接访问，其他应用创建的需要权限
      * Android 10，不支持，除非禁用分区存储
      * Android 9 及以下，有存储权限才可访问
+     *
+     * 图片、适配、音频、下载目录文件，不论归属是本应用还是其他应用，
+     * 不管是读取、编辑、删除等访问操作的是否需要存储权限的限制条件是和MediaStore操作是一样的。
      *
      * @param isOwner 是否是自己应用保存的图片
      */
