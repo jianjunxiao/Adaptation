@@ -82,7 +82,7 @@ class AccessMediaStoreActivity : AppCompatActivity() {
         }
         // 读取本应用保存到媒体下载目录中的文档
         btnReadOwnMediaDownloadDocument.setOnClickListener {
-            accessOwnMediaDownloadDocument(
+            readOwnMediaDownloadDocument(
                 if (isPackageA()) DOCUMENT_NAME_A else DOCUMENT_NAME_B, TXT
             )
         }
@@ -130,6 +130,7 @@ class AccessMediaStoreActivity : AppCompatActivity() {
                 showToastAndLog("图片下载失败")
                 return@launch
             }
+            // 开启了分区存储
             // 根据设备系统版本判断是否需要存储权限
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 // Android 10 及以上设备
@@ -142,8 +143,7 @@ class AccessMediaStoreActivity : AppCompatActivity() {
             } else {
                 // Android 9 及以下设备
                 if (suspendRequestStoragePermission()) {
-                    val result =
-                        saveImageToAlbum(this@AccessMediaStoreActivity, imageFile, imageName)
+                    val result = saveImageToAlbum(this@AccessMediaStoreActivity, imageFile, imageName)
                     if (result) {
                         showToastAndLog("Android9及以下设备:图片保存到相册成功")
                     } else {
@@ -248,11 +248,10 @@ class AccessMediaStoreActivity : AppCompatActivity() {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                         val recoverableSecurityException = se as? RecoverableSecurityException
                             ?: return@launch showToastAndLog(se.message.toString())
-                        val intentSender =
-                            recoverableSecurityException.userAction.actionIntent.intentSender
+                        val intentSender = recoverableSecurityException.userAction.actionIntent.intentSender
                         if (suspendLaunchSenderIntentForResult(intentSender)) {
-                            val result =
-                                deleteOwnImageFromAlbum(this@AccessMediaStoreActivity, fileName)
+                            // 用户同意后，再去执行删除，如果不执行，只要在App重启前执行都不会再次抛出se异常
+                            val result = deleteOwnImageFromAlbum(this@AccessMediaStoreActivity, fileName)
                             if (!result) {
                                 showToastAndLog("删除其他应用的相册图片失败")
                             } else {
@@ -301,12 +300,12 @@ class AccessMediaStoreActivity : AppCompatActivity() {
     }
 
     /**
-     * 访问本应用保存到媒体下载目录中的文档，只有Android10及以上设备可用，Android9及以下设备不可用。
+     * 读取本应用保存到媒体下载目录中的文档，只有Android10及以上设备可用，Android9及以下设备不可用。
      * Android 10 及以上的设备不需要存储权限。
      * Android 10 及以上的版本，如果应用卸载了，再重新安装，那么之前保存到媒体下载目录的文件不能读取了(不会抛出异常，只是查询不到)；
      * Android 10 及以上的设备系统版本，卸载重装，即使申请了存储权限，也不能读取到之前下载的图片，只有通过SAF才能读取到。
      */
-    private fun accessOwnMediaDownloadDocument(documentName: String, mineType: String) {
+    private fun readOwnMediaDownloadDocument(documentName: String, mineType: String) {
         lifecycleScope.launch {
             // Android 10及以上设备
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

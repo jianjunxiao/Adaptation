@@ -116,6 +116,7 @@
         android:id="@+id/btnReadOwnAlbumImageByFileApi"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
         android:text="通过FileAPI和路径读取本应用保存的相册图片"
         android:textAllCaps="false"
         app:layout_constraintBottom_toBottomOf="parent"
