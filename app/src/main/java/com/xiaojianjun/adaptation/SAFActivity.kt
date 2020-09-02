@@ -29,7 +29,6 @@ class SAFActivity : AppCompatActivity() {
         setContentView(R.layout.activity_saf)
         title = getString(R.string.app_name) + " :   SAF"
         init()
-        Environment.isExternalStorageManager()
     }
 
     private fun init() {
