@@ -17,6 +17,7 @@ import kotlinx.android.synthetic.main.activity_access_media_store.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.io.FileInputStream
 
 class AccessMediaStoreActivity : AppCompatActivity() {
@@ -39,6 +40,7 @@ class AccessMediaStoreActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_access_media_store)
+        title = getString(R.string.app_name) + " :   MediaStore"
         init()
     }
 
@@ -90,7 +92,7 @@ class AccessMediaStoreActivity : AppCompatActivity() {
         btnDeleteOwnMediaDownloadDocument.setOnClickListener {
             deleteOwnDownloadDocument(if (isPackageA()) DOCUMENT_NAME_A else DOCUMENT_NAME_B, TXT)
         }
-        // TODO 读取其他应用保存到媒体下载目录中的文档，不能使用这次方式，要用SAF才能访问
+        // TODO 读无法取其他应用保存到媒体下载目录中的文档，不能使用这次方式，要用SAF才能访问
         btnReadOtherAppMediaDownloadDocument.let {
             it.paintFlags = (it.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG)
             it.setOnClickListener {
@@ -110,6 +112,17 @@ class AccessMediaStoreActivity : AppCompatActivity() {
         // 通过FileAPI和路径读取其他应用保存的相册图片
         btnReadOtherAlbumImageByFileApi.setOnClickListener {
             readOwnAlbumImageByFileApi(false)
+        }
+        // 通过FileAPI和路径删除本应用保存的相册图片
+        btnDeleteOwnAlbumImageByFileApi.setOnClickListener {
+            deleteAlbumImageByFileApi(true)
+        }
+        // TODO 无法通过FileAPI和路径删除其他应用保存的相册图片，只有通过MediaStore抛出异常后用户二次确认才能删除
+        btnDeleteOtherAlbumImageByFileApi.let {
+            it.paintFlags = (it.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG)
+            it.setOnClickListener {
+                deleteAlbumImageByFileApi(false)
+            }
         }
     }
 
@@ -143,7 +156,8 @@ class AccessMediaStoreActivity : AppCompatActivity() {
             } else {
                 // Android 9 及以下设备
                 if (suspendRequestStoragePermission()) {
-                    val result = saveImageToAlbum(this@AccessMediaStoreActivity, imageFile, imageName)
+                    val result =
+                        saveImageToAlbum(this@AccessMediaStoreActivity, imageFile, imageName)
                     if (result) {
                         showToastAndLog("Android9及以下设备:图片保存到相册成功")
                     } else {
@@ -248,10 +262,12 @@ class AccessMediaStoreActivity : AppCompatActivity() {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                         val recoverableSecurityException = se as? RecoverableSecurityException
                             ?: return@launch showToastAndLog(se.message.toString())
-                        val intentSender = recoverableSecurityException.userAction.actionIntent.intentSender
+                        val intentSender =
+                            recoverableSecurityException.userAction.actionIntent.intentSender
                         if (suspendLaunchSenderIntentForResult(intentSender)) {
                             // 用户同意后，再去执行删除，如果不执行，只要在App重启前执行都不会再次抛出se异常
-                            val result = deleteOwnImageFromAlbum(this@AccessMediaStoreActivity, fileName)
+                            val result =
+                                deleteOwnImageFromAlbum(this@AccessMediaStoreActivity, fileName)
                             if (!result) {
                                 showToastAndLog("删除其他应用的相册图片失败")
                             } else {
@@ -431,7 +447,7 @@ class AccessMediaStoreActivity : AppCompatActivity() {
             when {
                 // Android 11 及以上
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
-                    if (isOwner || (!isOwner && suspendRequestStoragePermission())) {
+                    if (isOwner || (isOwner.not() && suspendRequestStoragePermission())) {
                         val bmp = doGetImageByFileApi(fileName)
                         ImageFragment().show(supportFragmentManager, bmp)
                         showToastAndLog("在Android11通过FileAPI使用直接路径访问成功")
@@ -464,6 +480,69 @@ class AccessMediaStoreActivity : AppCompatActivity() {
                 Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).path + "/" + fileName
             FileInputStream(path).use {
                 return@withContext BitmapFactory.decodeStream(it)
+            }
+        }
+    }
+
+    /**
+     * 删除系统相册中的照片
+     * 只能删除本应用保存到系统相册中的照片
+     * 其他应用保存到系统相册中的照片，无法通过File API 删除，就算有存储权限也不行
+     * 不管有没有存储权限都不会抛出异常。
+     * @param isOwner 是否是本应用保存到系统相册中的
+     */
+    private fun deleteAlbumImageByFileApi(isOwner: Boolean) {
+        val fileName = if (isOwner) {
+            if (isPackageA()) IMAGE_NAME_A else IMAGE_NAME_B
+        } else {
+            if (isPackageA()) IMAGE_NAME_B else IMAGE_NAME_A
+        }
+        lifecycleScope.launch {
+            when {
+                // Android 11 及以上
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
+                    if (isOwner || (isOwner.not())) {
+                        val result = doDeleteImageByFileApi(fileName)
+                        if (result) {
+                            showToastAndLog("Android11以上通过FileApi删除图片成功")
+                        } else {
+                            showToastAndLog("Android11以上通过FileApi删除图片失败")
+                        }
+                    }
+                }
+                // Android 10
+                Build.VERSION.SDK_INT == Build.VERSION_CODES.Q -> {
+                    showToastAndLog("Android 10 不支持FileAPI访问")
+                }
+                // Android 9及以下
+                else -> {
+                    if (suspendRequestStoragePermission()) {
+                        val result = doDeleteImageByFileApi(fileName)
+                        if (result) {
+                            showToastAndLog("Android9及以下通过FileApi删除图片成功")
+                        } else {
+                            showToastAndLog("Android9及以下通过FileApi删除图片失败")
+                        }
+                    } else {
+                        showToastAndLog("存储权限拒绝")
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 通过FileApi删除系统相册中照片
+     */
+    private suspend fun doDeleteImageByFileApi(fileName: String): Boolean {
+        return withContext(Dispatchers.IO) {
+            val path =
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).path + "/" + fileName
+            val file = File(path)
+            return@withContext if (file.exists()) {
+                file.delete()
+            } else {
+                true
             }
         }
     }

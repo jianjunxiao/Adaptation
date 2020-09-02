@@ -14,7 +14,8 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
-        <activity android:name=".AccessPrivateStorageActivity"></activity>
+        <activity android:name=".SAFActivity"></activity>
+        <activity android:name=".AccessPrivateStorageActivity" />
         <activity android:name=".AccessMediaStoreActivity" />
         <activity android:name=".MainActivity">
             <intent-filter>

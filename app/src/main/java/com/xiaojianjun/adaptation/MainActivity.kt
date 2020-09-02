@@ -18,10 +18,13 @@ class MainActivity : AppCompatActivity() {
         btnAccessPrivateStorage.setOnClickListener {
             startActivity(Intent(this, AccessPrivateStorageActivity::class.java))
         }
-        // 访问共享存储MediaStore
+        // 通过MediaStore访问共享存储的媒体文件
         btnAccessMediaStore.setOnClickListener {
             startActivity(Intent(this, AccessMediaStoreActivity::class.java))
         }
-        // 通过SAF访问共享存储空间
+        // 通过SAF访问共享存储空间中的文档或其他文件
+        btnAccessSAF.setOnClickListener {
+            startActivity(Intent(this, SAFActivity::class.java))
+        }
     }
 }

@@ -23,7 +23,19 @@
         android:id="@+id/btnAccessMediaStore"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="访问共享存储MediaStore"
+        android:layout_marginTop="8dp"
+        android:text="MediaStore访问共享存储的媒体文件"
+        android:textAllCaps="false"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/btnAccessSAF"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="SAF访问共享存储的文档或其他文件"
         android:textAllCaps="false"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
