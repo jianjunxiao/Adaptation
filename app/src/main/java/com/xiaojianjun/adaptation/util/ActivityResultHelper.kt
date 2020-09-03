@@ -31,8 +31,8 @@ suspend fun AppCompatActivity.suspendLaunchActivityForResult(intent: Intent): Ac
     }
 }
 
-fun AppCompatActivity.requestPermission(
-    permissions: Array<String>,
+fun AppCompatActivity.doRequestPermission(
+    vararg permissions: String,
     callback: (Boolean) -> Unit
 ) {
     var launcher: ActivityResultLauncher<Array<out String>>? = null
@@ -45,10 +45,11 @@ fun AppCompatActivity.requestPermission(
     launcher.launch(permissions)
 }
 
-suspend fun AppCompatActivity.suspendRequestPermission(permissions: Array<String>): Boolean {
+suspend fun AppCompatActivity.suspendRequestPermission(vararg permissions: String): Boolean {
     return suspendCoroutine { continuation ->
         var launcher: ActivityResultLauncher<Array<out String>>? = null
-        launcher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+        launcher =
+            registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
                 val allGranted = result.all { it.value == true }
                 continuation.resume(allGranted)
                 launcher?.unregister()

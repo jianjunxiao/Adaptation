@@ -208,7 +208,6 @@ class AccessMediaStoreActivity : AppCompatActivity() {
 
     /**
      * 访问其他App存储到系统相册的图片
-     * （修改包名，直接读取之前包名应用下载的图片）
      */
     private fun readOtherAppAlbumImage(fileName: String) {
         lifecycleScope.launch {

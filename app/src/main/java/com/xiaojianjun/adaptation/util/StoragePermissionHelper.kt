@@ -12,11 +12,9 @@ import androidx.appcompat.app.AppCompatActivity
  * @param onDenied 拒绝
  */
 fun AppCompatActivity.requestStoragePermission(onGranted: () -> Unit, onDenied: () -> Unit) {
-    requestPermission(
-        arrayOf(
-            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            Manifest.permission.READ_EXTERNAL_STORAGE
-        )
+    doRequestPermission(
+        Manifest.permission.WRITE_EXTERNAL_STORAGE,
+        Manifest.permission.READ_EXTERNAL_STORAGE
     ) {
         if (it) {
             onGranted()
@@ -32,10 +30,8 @@ fun AppCompatActivity.requestStoragePermission(onGranted: () -> Unit, onDenied: 
  */
 suspend fun AppCompatActivity.suspendRequestStoragePermission(): Boolean {
     return suspendRequestPermission(
-        arrayOf(
-            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            Manifest.permission.READ_EXTERNAL_STORAGE
-        )
+        Manifest.permission.WRITE_EXTERNAL_STORAGE,
+        Manifest.permission.READ_EXTERNAL_STORAGE
     )
 }
 

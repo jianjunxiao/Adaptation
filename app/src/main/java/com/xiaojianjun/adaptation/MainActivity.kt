@@ -26,5 +26,13 @@ class MainActivity : AppCompatActivity() {
         btnAccessSAF.setOnClickListener {
             startActivity(Intent(this, SAFActivity::class.java))
         }
+        // 位置(定位）
+        btnLocation.setOnClickListener {
+            startActivity(Intent(this, LocationActivity::class.java))
+        }
+        // 权限变更
+        btnPermissionChange.setOnClickListener {
+            startActivity(Intent(this, PermissionChangeActivity::class.java))
+        }
     }
 }
