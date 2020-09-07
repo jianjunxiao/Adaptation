@@ -36,6 +36,10 @@ class MainActivity : AppCompatActivity() {
         btnPermissionChange.setOnClickListener {
             startActivity(Intent(this, PermissionChangeActivity::class.java))
         }
+        // 软件包可见性
+        btnPackageVisibility.setOnClickListener {
+            startActivity(Intent(this, PackageVisibilityActivity::class.java))
+        }
 
     }
 }

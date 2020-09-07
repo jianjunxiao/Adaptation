@@ -15,6 +15,20 @@
     <uses-permission android:name="android.permission.READ_PHONE_NUMBERS" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
 
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+
+            <category android:name="android.intent.category.BROWSABLE" />
+
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="androidx.browser.customtabs.CustomTabsService" />
+        </intent>
+    </queries>
+
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -23,18 +37,25 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
-        <activity android:name=".LocationActivity"></activity>
+        <activity android:name=".PackageVisibilityActivity" />
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+
+                <data android:scheme="https" />
+
+                <category android:name="android.intent.category.BROWSABLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <action android:name="android.intent.action.VIEW" />
             </intent-filter>
         </activity> <!-- 前台位置服务 -->
         <service
             android:name=".ForegroundLocationService"
             android:foregroundServiceType="location" />
 
+        <activity android:name=".LocationActivity" />
         <activity android:name=".PermissionChangeActivity" />
         <activity android:name=".SAFActivity" />
         <activity android:name=".AccessPrivateStorageActivity" />

@@ -45,6 +45,7 @@
     <Button
         android:id="@+id/btnLocation"
         android:text="位置(定位)"
+        android:layout_marginTop="8dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"/>
 
@@ -54,10 +55,15 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:text="权限变更"
-        android:textAllCaps="false"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:textAllCaps="false" />
+
+
+    <Button
+        android:id="@+id/btnPackageVisibility"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="软件包可见性"
+        android:textAllCaps="false" />
 
 </LinearLayout>
