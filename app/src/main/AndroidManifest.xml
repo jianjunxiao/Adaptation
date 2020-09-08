@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.xiaojianjun.adaptation">
 
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.INTERNET" /> <!-- 存储权限 -->
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
@@ -15,7 +16,9 @@
     <uses-permission android:name="android.permission.READ_PHONE_NUMBERS" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
 
+    <!-- 可访问的应用 -->
     <queries>
+        <!-- 浏览器应用 -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
 
@@ -23,13 +26,32 @@
 
             <data android:scheme="https" />
         </intent>
+        <!-- 自定义标签页浏览器 -->
         <intent>
             <action android:name="androidx.browser.customtabs.CustomTabsService" />
         </intent>
+        <!-- 能打开pdf文件的应用 -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+
+            <data android:mimeType="application/pdf" />
+        </intent>
+        <!-- 能够分享图片的应用 -->
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+
+            <data android:mimeType="image/jpeg" />
+        </intent>
+        <!-- 自定义了文字选择操作的应用 -->
+        <intent>
+            <action android:name="android.intent.action.PROCESS_TEXT" />
+
+            <data android:mimeType="text/plain" />
+        </intent>
     </queries>
 
-
     <application
+        android:name=".App"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -37,6 +59,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
+        <activity android:name=".Test5GActivity"></activity>
         <activity android:name=".PackageVisibilityActivity" />
         <activity android:name=".MainActivity">
             <intent-filter>
@@ -48,6 +71,7 @@
 
                 <category android:name="android.intent.category.BROWSABLE" />
                 <category android:name="android.intent.category.DEFAULT" />
+
                 <action android:name="android.intent.action.VIEW" />
             </intent-filter>
         </activity> <!-- 前台位置服务 -->

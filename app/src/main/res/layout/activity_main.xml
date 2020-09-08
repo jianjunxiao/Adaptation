@@ -66,4 +66,12 @@
         android:text="软件包可见性"
         android:textAllCaps="false" />
 
+    <Button
+        android:id="@+id/btn5G"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="5G功能"
+        android:textAllCaps="false" />
+
 </LinearLayout>

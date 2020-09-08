@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.telephony.TelephonyManager
 import android.util.Log
 import android.widget.Toast
+import androidx.core.content.getSystemService
 import com.xiaojianjun.adaptation.util.doRequestPermission
 import kotlinx.android.synthetic.main.activity_permission_change.*
 
@@ -63,7 +64,8 @@ class PermissionChangeActivity : AppCompatActivity() {
 
     @SuppressLint("MissingPermission")
     private fun getPhoneNumber() {
-        val telephonyManager = getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+       val ac = createAttributionContext("电话号码权限变更")
+        val telephonyManager = ac.getSystemService<TelephonyManager>()!!
         val line1Number = telephonyManager.line1Number
         showToastAndLog(line1Number)
 //        telephonyManager.getMsisdn()

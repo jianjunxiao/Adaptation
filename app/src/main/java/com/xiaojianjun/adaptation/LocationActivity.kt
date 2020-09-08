@@ -38,8 +38,7 @@ class LocationActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val granted = suspendRequestPermission(
                 Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.ACCESS_COARSE_LOCATION,
-                Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                Manifest.permission.ACCESS_COARSE_LOCATION
             )
             if (granted) {
                 showToastAndLog("获得前台位置权限")

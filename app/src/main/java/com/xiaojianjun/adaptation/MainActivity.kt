@@ -40,6 +40,9 @@ class MainActivity : AppCompatActivity() {
         btnPackageVisibility.setOnClickListener {
             startActivity(Intent(this, PackageVisibilityActivity::class.java))
         }
-
+        // 5G功能
+        btn5G.setOnClickListener {
+            startActivity(Intent(this, Test5GActivity::class.java))
+        }
     }
 }
