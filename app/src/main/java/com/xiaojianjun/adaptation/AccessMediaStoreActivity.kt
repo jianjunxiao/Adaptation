@@ -233,11 +233,22 @@ class AccessMediaStoreActivity : AppCompatActivity() {
      */
     private fun deleteOwnImageFromAlbum(fileName: String) {
         lifecycleScope.launch {
-            val result = deleteOwnImageFromAlbum(this@AccessMediaStoreActivity, fileName)
-            if (!result) {
-                showToastAndLog("删除图片失败：可能没有该图片")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val result = deleteOwnImageFromAlbum(this@AccessMediaStoreActivity, fileName)
+                if (!result) {
+                    showToastAndLog("删除图片失败：可能没有该图片")
+                } else {
+                    showToastAndLog("删除图片成功")
+                }
             } else {
-                showToastAndLog("删除图片成功")
+                if (suspendRequestStoragePermission()) {
+                    val result = deleteOwnImageFromAlbum(this@AccessMediaStoreActivity, fileName)
+                    if (!result) {
+                        showToastAndLog("删除图片失败：可能没有该图片")
+                    } else {
+                        showToastAndLog("删除图片成功")
+                    }
+                }
             }
         }
     }

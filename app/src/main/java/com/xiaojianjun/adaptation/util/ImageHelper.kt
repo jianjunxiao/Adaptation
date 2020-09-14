@@ -61,12 +61,12 @@ suspend fun getImageFileFromAlbum(context: Context, fileName: String): Bitmap? {
             val idColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
             while (it.moveToNext()) {
                 val id = it.getLong(idColumn)
-                val contentUri = ContentUris.withAppendedId(uri, id)
-                context.contentResolver.openInputStream(contentUri)?.use { inputStream ->
+                val imageUri = ContentUris.withAppendedId(uri, id)
+                context.contentResolver.openInputStream(imageUri)?.use { inputStream ->
                     return@withContext BitmapFactory.decodeStream(inputStream)
                     // 还可以开启通过文件描述符来获得Bitmap
                     // 如果是gif图，通过Bitmap来读取会失去动效，可以先保存到专属存储空间，再访问
-                    // 或者直接将contentUri给Glide来进行加载
+                    // 或者直接将imageUri给Glide来进行加载
                 }
             }
         }
