@@ -75,7 +75,7 @@ class PackageVisibilityActivity : AppCompatActivity() {
     }
 
     /**
-     * 在自定义标签页中打开百度
+     * 在自定义标签页中打开网页
      * 不管是否配置queries，都能在默认的自定义标签页中打开百度
      */
     private fun openBaiduByCustomTabsClient() {
@@ -86,6 +86,9 @@ class PackageVisibilityActivity : AppCompatActivity() {
 
     }
 
+    /**
+     * 检查设备是否有支持自定义标签页的浏览器
+     */
     private fun queryAvailableCustomTabs() {
         val intent = Intent().apply {
             action = Intent.ACTION_VIEW
