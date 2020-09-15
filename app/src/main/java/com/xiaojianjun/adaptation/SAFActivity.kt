@@ -136,7 +136,7 @@ class SAFActivity : AppCompatActivity() {
     }
 
     /**
-     * 授予APP对某个目录内容的访问权限
+     * 打开文档树，授予APP对某个目录内容的访问权限
      */
     private fun grantedDirAccessPermission() {
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
@@ -151,9 +151,9 @@ class SAFActivity : AppCompatActivity() {
             // 后续操作，借助androidx DocumentFile库方便对目录及内容进行读、写、编辑、删除等操作
             val documentFile = DocumentFile.fromTreeUri(this@SAFActivity, uri)
             val documentFiles = documentFile?.listFiles()
-            documentFiles?.forEach {
-                val childUri = it.uri
-                // 子文件读、写、删除，或者创建新的目录、新的文件
+            documentFiles?.forEach { child ->
+                val childUri = child.uri
+                // TODO 子文件读、写、删除，或者创建新的目录、新的文件
             }
         }
     }

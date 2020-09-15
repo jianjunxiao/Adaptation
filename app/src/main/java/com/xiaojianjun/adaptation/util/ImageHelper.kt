@@ -64,7 +64,7 @@ suspend fun getImageFileFromAlbum(context: Context, fileName: String): Bitmap? {
                 val imageUri = ContentUris.withAppendedId(uri, id)
                 context.contentResolver.openInputStream(imageUri)?.use { inputStream ->
                     return@withContext BitmapFactory.decodeStream(inputStream)
-                    // 还可以开启通过文件描述符来获得Bitmap
+                    // 还可以开启通过文件描述符openFileDescriptor来获得Bitmap
                     // 如果是gif图，通过Bitmap来读取会失去动效，可以先保存到专属存储空间，再访问
                     // 或者直接将imageUri给Glide来进行加载
                 }

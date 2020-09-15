@@ -373,6 +373,7 @@ class AccessMediaStoreActivity : AppCompatActivity() {
                 }
             } else {
                 showToastAndLog("Android 9及以下不支持")
+                // 通过File API去删
             }
         }
     }
@@ -511,13 +512,15 @@ class AccessMediaStoreActivity : AppCompatActivity() {
             when {
                 // Android 11 及以上
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
-                    if (isOwner || (isOwner.not())) {
+                    if (isOwner) {
                         val result = doDeleteImageByFileApi(fileName)
                         if (result) {
                             showToastAndLog("Android11以上通过FileApi删除图片成功")
                         } else {
                             showToastAndLog("Android11以上通过FileApi删除图片失败")
                         }
+                    } else {
+                        showToastAndLog("Android11不支持通过FileApi删其他应用的图片，即使有权限也不行")
                     }
                 }
                 // Android 10
