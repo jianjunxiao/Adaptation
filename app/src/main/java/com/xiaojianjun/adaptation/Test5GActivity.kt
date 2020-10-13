@@ -21,6 +21,7 @@ import androidx.lifecycle.lifecycleScope
 import com.xiaojianjun.adaptation.util.suspendRequestPermission
 import com.xiaojianjun.adaptation.util.suspendRequestStoragePermission
 import kotlinx.android.synthetic.main.activity_5_g.*
+import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.launch
 
 class Test5GActivity : AppCompatActivity() {
